@@ -22,7 +22,7 @@ skill-reviewer/          ← this tool (git this folder)
 From the **project root** (parent of `skill-reviewer/`):
 
 ```bash
-# optional: rebuild manifest from skills_R2 + report.md
+# optional: rebuild manifest from --skills-root (optional --report)
 python3 skill-reviewer/build_skill_manifest.py
 
 python3 skill-reviewer/serve_viewer.py
@@ -48,7 +48,7 @@ Rebuild from disk:
 
 ```bash
 python3 skill-reviewer/build_skill_manifest.py \
-  --skills-root ../skills_R2 \
+  --skills-root [skills_root] \
   --report ../report.md
 ```
 
