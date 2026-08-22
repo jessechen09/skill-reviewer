@@ -429,6 +429,7 @@
   .win-lang.lang-markdown { background: #555; }
   .win-lang.lang-json { background: #6b4f8a; }
   .win-lang.lang-yaml, .win-lang.lang-ini { background: #8a5a2b; }
+  .win-lang.lang-c, .win-lang.lang-cpp { background: #00599c; }
   .win-actions button {
     font: inherit;
     font-size: 0.75rem;
@@ -642,6 +643,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/xml.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/css.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/ini.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/c.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/cpp.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/rust.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/go.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/ruby.min.js"></script>
@@ -656,7 +659,9 @@ const LANG_MAP = {
   jsx: 'javascript', sh: 'bash', bash: 'bash', json: 'json', txt: 'plaintext',
   yml: 'yaml', yaml: 'yaml', toml: 'ini', css: 'css', html: 'xml', htm: 'xml',
   rs: 'rust', go: 'go', rb: 'ruby', env: 'bash', cfg: 'ini', ini: 'ini',
-  xml: 'xml', svg: 'xml', sql: 'sql'
+  xml: 'xml', svg: 'xml', sql: 'sql',
+  c: 'c', h: 'c', cpp: 'cpp', cc: 'cpp', cxx: 'cpp', 'c++': 'cpp',
+  hpp: 'cpp', hh: 'cpp', hxx: 'cpp', 'h++': 'cpp'
 };
 
 function langFor(path) {
