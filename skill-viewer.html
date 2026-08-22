@@ -486,6 +486,7 @@
     height: 100%;
   }
   .editor-stack .code-highlight,
+  .editor-stack .word-match-layer,
   .editor-stack .code-edit {
     position: absolute;
     inset: 0;
@@ -517,6 +518,16 @@
     caret-color: #e6edf3;
   }
   .editor-stack .code-edit::selection { background: rgba(56, 139, 253, 0.4); color: transparent; }
+  .editor-stack .word-match-layer {
+    pointer-events: none;
+    color: transparent;
+    background: transparent;
+  }
+  .editor-stack .word-match-layer mark {
+    background: rgba(255, 196, 0, 0.35);
+    color: transparent;
+    border-radius: 2px;
+  }
   .md-preview {
     flex: 1 1 auto;
     height: 100%;
@@ -1028,12 +1039,15 @@ function makeFileWindow(skill, path, isPriority) {
   const highlightCode = document.createElement('code');
   highlightCode.className = 'language-' + lang;
   highlightPre.appendChild(highlightCode);
+  const matchLayer = document.createElement('pre');
+  matchLayer.className = 'word-match-layer';
+  matchLayer.setAttribute('aria-hidden', 'true');
   const editor = document.createElement('textarea');
   editor.className = 'code-edit';
   editor.spellcheck = false;
   editor.wrap = 'off';
   editor.disabled = true;
-  editorStack.append(highlightPre, editor);
+  editorStack.append(highlightPre, matchLayer, editor);
 
   function canHighlight() {
     return !!(window.hljs && hljs.getLanguage(lang));
@@ -1041,6 +1055,38 @@ function makeFileWindow(skill, path, isPriority) {
   function escapeHtml(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
+  function escapeRegExp(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+  function clearWordMatches() {
+    matchLayer.innerHTML = '';
+  }
+  function highlightWordMatches(word) {
+    if (!word || !/^[A-Za-z0-9_$]+$/.test(word)) {
+      clearWordMatches();
+      return;
+    }
+    const text = editor.value;
+    const re = new RegExp('\\b' + escapeRegExp(word) + '\\b', 'g');
+    let html = '';
+    let last = 0;
+    let m;
+    while ((m = re.exec(text))) {
+      html += escapeHtml(text.slice(last, m.index)) + '<mark>' + escapeHtml(m[0]) + '</mark>';
+      last = m.index + m[0].length;
+    }
+    html += escapeHtml(text.slice(last));
+    matchLayer.innerHTML = html;
+  }
+  editor.addEventListener('dblclick', () => {
+    highlightWordMatches(editor.value.slice(editor.selectionStart, editor.selectionEnd));
+  });
+  editor.addEventListener('click', () => {
+    if (editor.selectionStart === editor.selectionEnd) clearWordMatches();
+  });
+  editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') clearWordMatches();
+  });
   function updateHighlight() {
     const text = editor.value;
     let html;
@@ -1059,6 +1105,8 @@ function makeFileWindow(skill, path, isPriority) {
     lineNumbers.scrollTop = editor.scrollTop;
     highlightPre.scrollTop = editor.scrollTop;
     highlightPre.scrollLeft = editor.scrollLeft;
+    matchLayer.scrollTop = editor.scrollTop;
+    matchLayer.scrollLeft = editor.scrollLeft;
   });
 
   let savedText = null;
@@ -1089,11 +1137,15 @@ function makeFileWindow(skill, path, isPriority) {
   editor.addEventListener('input', () => {
     updateLineNumbers();
     updateHighlight();
+    clearWordMatches();
     setStatus('editing…', null);
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flushSave, 800);
   });
-  editor.addEventListener('blur', flushSave);
+  editor.addEventListener('blur', () => {
+    clearWordMatches();
+    flushSave();
+  });
 
   const codeView = document.createElement('div');
   codeView.className = 'code-view';
