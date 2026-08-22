@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>skills_R2 viewer</title>
+<title>skill-reviewer</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css" />
 <style>
   :root {
@@ -58,6 +58,16 @@
     border-color: #555;
   }
   .topbar select { cursor: pointer; max-width: 160px; }
+  .topbar input[type="file"] { max-width: 220px; padding: 4px 6px; cursor: pointer; }
+  .topbar input[type="file"]::file-selector-button {
+    margin-right: 8px;
+    border: 0;
+    border-radius: 4px;
+    padding: 4px 8px;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+  }
   .topbar .meta { color: #aaa; font-size: 0.9rem; margin-left: auto; }
   .banner {
     display: none;
@@ -80,9 +90,21 @@
     overflow: auto;
     background: #171717;
     color: #eaeaea;
-    border-right: 1px solid #333;
     flex-shrink: 0;
   }
+  .sidebar-resizer {
+    width: 7px;
+    height: 100%;
+    flex: 0 0 7px;
+    cursor: col-resize;
+    background: #252525;
+    border-left: 1px solid #333;
+    border-right: 1px solid #444;
+    touch-action: none;
+  }
+  .sidebar-resizer:hover,
+  .sidebar-resizer.dragging { background: var(--accent); }
+  .layout.resizing { cursor: col-resize; user-select: none; }
   .sidebar h3 {
     margin: 0;
     padding: 12px 14px 8px;
@@ -136,23 +158,39 @@
     background: #f4f2ea;
   }
   .skill-head {
-    padding: 12px 16px 8px;
+    position: relative;
+    padding: 6px 112px 5px 12px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--line);
   }
   .skill-head h2 {
-    margin: 0 0 4px;
-    font-size: 1.15rem;
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.25;
     font-family: "IBM Plex Mono", ui-monospace, monospace;
     word-break: break-all;
   }
-  .skill-head .idx { color: var(--muted); font-size: 0.85rem; }
+  .skill-head .idx { color: var(--muted); font-size: 0.74rem; line-height: 1.25; }
+  .skill-copy-all {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    padding: 4px 9px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background: #333;
+    color: #fff;
+    font: 0.76rem "IBM Plex Mono", ui-monospace, monospace;
+    cursor: pointer;
+  }
+  .skill-copy-all:disabled { opacity: 0.45; cursor: wait; }
   .ticks {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 5px;
     align-items: center;
-    padding: 10px 16px 12px;
+    padding: 5px 12px 6px;
     background: #f0eee6;
     border-bottom: 1px solid var(--line);
     flex-shrink: 0;
@@ -161,10 +199,10 @@
   .ticks-save {
     font: inherit;
     font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    padding: 7px 14px;
-    border-radius: 6px;
+    padding: 4px 10px;
+    border-radius: 5px;
     border: 1px solid var(--accent);
     background: var(--accent);
     color: #fff;
@@ -174,10 +212,10 @@
   .ticks-undo {
     font: inherit;
     font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    padding: 7px 14px;
-    border-radius: 6px;
+    padding: 4px 10px;
+    border-radius: 5px;
     border: 1px solid #8a6d3b;
     background: #fff;
     color: #6a4e1f;
@@ -198,7 +236,7 @@
     cursor: not-allowed;
   }
   .ticks-save-status {
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     color: var(--muted);
     min-width: 4ch;
   }
@@ -212,27 +250,27 @@
   .ticks-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 5px;
     align-items: center;
   }
   .ticks-sep {
     width: 1px;
     align-self: stretch;
-    min-height: 28px;
+    min-height: 22px;
     background: #b0aa98;
-    margin: 0 6px;
+    margin: 0 3px;
     flex-shrink: 0;
   }
   .ticks label {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.95rem;
+    font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
     user-select: none;
-    padding: 6px 10px;
+    padding: 3px 7px;
     border: 1px solid var(--line);
     border-radius: 6px;
     background: #fff;
@@ -242,8 +280,8 @@
     border-color: var(--accent);
   }
   .ticks input {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     accent-color: var(--accent);
     cursor: pointer;
   }
@@ -258,26 +296,56 @@
     flex-shrink: 0;
     background: var(--how-bg);
     border-bottom: 2px solid var(--how-border);
-    padding: 12px 16px;
-    max-height: 32vh;
-    overflow: auto;
+    padding: 6px 12px;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
   }
-  .how .label { font-weight: 700; margin-bottom: 6px; }
+  .how.collapsed {
+    height: auto !important;
+    min-height: 0;
+    overflow: hidden;
+    resize: none;
+  }
+  .how-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 3px;
+    background: var(--how-bg);
+  }
+  .how .label { font-weight: 700; }
+  .how-toggle {
+    border: 1px solid #b89e48;
+    border-radius: 5px;
+    background: #fffdf5;
+    color: var(--ink);
+    padding: 2px 7px;
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .how.collapsed .how-head { margin-bottom: 0; }
+  .how.collapsed .how-content { display: none; }
   .how .body { font-size: 0.95rem; white-space: pre-wrap; word-break: break-word; }
   .how ol {
     margin: 0;
     padding-left: 1.35rem;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
   }
   .how ol li {
-    margin: 0.35em 0;
+    margin: 0.15em 0;
     word-break: break-word;
   }
   .how .root-path {
     font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     color: var(--muted);
-    margin-bottom: 8px;
+    margin-bottom: 3px;
   }
   .files {
     flex: 1;
@@ -288,6 +356,15 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
     align-content: start;
+  }
+  .files.single-row {
+    overflow: hidden;
+    grid-auto-rows: minmax(0, 1fr);
+    align-content: stretch;
+  }
+  .files.single-row .win {
+    height: 100%;
+    min-height: 0;
   }
   .win {
     display: flex;
@@ -357,8 +434,40 @@
     color: #eee;
     cursor: pointer;
   }
+  .win-actions { display: flex; gap: 5px; }
+  .win-actions button:disabled { opacity: 0.45; cursor: wait; }
   .win-body { flex: 1; min-height: 0; overflow: auto; background: var(--code-bg); }
-  .win-body pre { margin: 0; padding: 12px 14px; background: var(--code-bg) !important; min-height: 100%; }
+  .code-view {
+    display: flex;
+    align-items: stretch;
+    width: max-content;
+    min-width: 100%;
+    min-height: 100%;
+  }
+  .win-body .line-numbers {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    flex: 0 0 auto;
+    min-width: calc(2ch + 5px);
+    margin: 0;
+    padding: 12px 3px;
+    border-right: 1px solid #30363d;
+    background: #161b22;
+    color: #6e7681;
+    text-align: right;
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.45;
+    user-select: none;
+  }
+  .win-body .code-pre {
+    flex: 1 0 auto;
+    margin: 0;
+    padding: 12px 14px;
+    background: var(--code-bg) !important;
+    min-height: 100%;
+  }
   .win-body code {
     font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace !important;
     font-size: 12.5px !important;
@@ -379,13 +488,35 @@
   .hidden { display: none !important; }
   @media (max-width: 900px) {
     .sidebar { display: none; }
+    .sidebar-resizer { display: none; }
     .files { grid-template-columns: 1fr; }
+    .files.single-row {
+      overflow: auto;
+      grid-auto-rows: auto;
+      align-content: start;
+    }
+    .files.single-row .win {
+      height: min(60vh, 560px);
+      min-height: 220px;
+    }
+    .files.one-file {
+      overflow: hidden;
+      grid-auto-rows: minmax(0, 1fr);
+      align-content: stretch;
+    }
+    .files.one-file .win {
+      height: 100%;
+      min-height: 0;
+    }
   }
 </style>
 </head>
 <body>
   <div class="topbar">
-    <strong>skill-viewer</strong>
+    <strong>skill-reviewer</strong>
+    <label>Manifest
+      <input id="manifest-file" type="file" accept=".json,application/json" title="Load a different skill manifest JSON" />
+    </label>
     <label>Sort
       <select id="sort-mode" title="Sort skill list">
         <option value="name-asc">Name A–Z</option>
@@ -405,10 +536,11 @@
   </div>
   <div id="banner" class="banner"></div>
   <div class="layout">
-    <nav class="sidebar" aria-label="skills_R2 list">
-      <h3>skills_R2 <span id="list-count"></span></h3>
+    <nav class="sidebar" aria-label="skill-reviewer list">
+      <h3>skill-reviewer <span id="list-count"></span></h3>
       <ol id="skill-list"></ol>
     </nav>
+    <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="Resize skill list" aria-orientation="vertical" title="Drag to resize; double-click to reset"></div>
     <div class="main" id="root"></div>
   </div>
 
@@ -452,15 +584,58 @@ const filter = document.getElementById('filter');
 const meta = document.getElementById('meta');
 const banner = document.getElementById('banner');
 const sortMode = document.getElementById('sort-mode');
+const manifestFile = document.getElementById('manifest-file');
+const layout = document.querySelector('.layout');
+const sidebar = document.querySelector('.sidebar');
+const sidebarResizer = document.getElementById('sidebar-resizer');
 const listButtons = [];
 let SKILLS = [];
 let SKILLS_MANIFEST = []; // original manifest order
 let SKILLS_ROOT = 'skills_R2';
 let current = 0;
 let orderMode = 'name-asc';
-const fileCache = new Map(); // path url -> text
 let SAVED_REVIEWS = {}; // skill -> {nl, c, type} from CSV
 const SHUFFLE_SEED = 9;
+const HOW_COLLAPSED_KEY = 'skill_viewer_how_collapsed_v1';
+const SIDEBAR_WIDTH_KEY = 'skill_viewer_sidebar_width_v1';
+
+const savedSidebarWidth = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+if (Number.isFinite(savedSidebarWidth) && savedSidebarWidth >= 120) {
+  document.documentElement.style.setProperty('--sidebar-w', savedSidebarWidth + 'px');
+}
+
+sidebarResizer.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  sidebarResizer.setPointerCapture(event.pointerId);
+  sidebarResizer.classList.add('dragging');
+  layout.classList.add('resizing');
+  const startX = event.clientX;
+  const startWidth = sidebar.getBoundingClientRect().width;
+
+  function resize(moveEvent) {
+    const maxWidth = Math.max(120, Math.min(600, layout.clientWidth - 320));
+    const width = Math.max(120, Math.min(maxWidth, startWidth + moveEvent.clientX - startX));
+    document.documentElement.style.setProperty('--sidebar-w', width + 'px');
+  }
+
+  function stop() {
+    sidebarResizer.classList.remove('dragging');
+    layout.classList.remove('resizing');
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(Math.round(sidebar.getBoundingClientRect().width)));
+    sidebarResizer.removeEventListener('pointermove', resize);
+    sidebarResizer.removeEventListener('pointerup', stop);
+    sidebarResizer.removeEventListener('pointercancel', stop);
+  }
+
+  sidebarResizer.addEventListener('pointermove', resize);
+  sidebarResizer.addEventListener('pointerup', stop);
+  sidebarResizer.addEventListener('pointercancel', stop);
+});
+
+sidebarResizer.addEventListener('dblclick', () => {
+  document.documentElement.style.setProperty('--sidebar-w', '300px');
+  localStorage.removeItem(SIDEBAR_WIDTH_KEY);
+});
 
 function skillId(skill) {
   return skill.id || skill.name || '';
@@ -494,7 +669,7 @@ function normalizeSkill(raw) {
     how_it_works: skillHowSteps(raw),
   };
 }
-const MARKS_KEY = 'skills_R2_viewer_marks_v1';
+const MARKS_KEY = 'skill_reviewer_marks_v2';
 const MARK_MULTI = ['NL', 'Code'];           // independent (either/or/both)
 const MARK_SINGLE = ['R1', 'R2', 'R3', 'Benign']; // mutually exclusive
 const MARK_KEYS = [...MARK_MULTI, ...MARK_SINGLE];
@@ -514,6 +689,19 @@ function getMarks(name) {
   if (raw.c && !raw.Code) raw.Code = true;
   const out = {};
   MARK_KEYS.forEach(k => { out[k] = !!raw[k]; });
+
+  // A saved CSV row is authoritative and should restore its labels on load.
+  const saved = SAVED_REVIEWS[name];
+  if (saved) {
+    out.NL = !!saved.nl;
+    out.Code = !!saved.c;
+    MARK_SINGLE.forEach(k => { out[k] = false; });
+    const savedType = MARK_SINGLE.find(
+      k => k.toLowerCase() === String(saved.type || '').toLowerCase()
+    );
+    if (savedType) out[savedType] = true;
+  }
+
   // enforce single-choice: keep first selected among MARK_SINGLE if multiple saved
   let seen = false;
   MARK_SINGLE.forEach(k => {
@@ -574,6 +762,34 @@ function showServeHint(err) {
     + (err ? ' <span style="opacity:.8">(' + err + ')</span>' : '');
 }
 
+async function writeClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  if (!copied) throw new Error('Clipboard access was denied');
+}
+
+async function copyWithFeedback(button, text) {
+  const original = button.dataset.defaultLabel || button.textContent;
+  button.dataset.defaultLabel = original;
+  try {
+    await writeClipboard(text);
+    button.textContent = 'Copied';
+  } catch (_) {
+    button.textContent = 'Copy failed';
+  }
+  window.setTimeout(() => { button.textContent = original; }, 1200);
+}
+
 function setActive(i) {
   listButtons.forEach((btn, idx) => btn.classList.toggle('active', idx === i));
   const btn = listButtons[i];
@@ -604,6 +820,15 @@ function makeFileWindow(skill, path, isPriority) {
 
   const actions = document.createElement('div');
   actions.className = 'win-actions';
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.textContent = 'Copy';
+  copyBtn.disabled = true;
+  copyBtn.addEventListener('click', () => {
+    if (typeof win.sourceText === 'string') {
+      copyWithFeedback(copyBtn, win.sourceText);
+    }
+  });
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.textContent = 'Collapse';
@@ -611,7 +836,7 @@ function makeFileWindow(skill, path, isPriority) {
     win.classList.toggle('collapsed');
     toggle.textContent = win.classList.contains('collapsed') ? 'Expand' : 'Collapse';
   });
-  actions.appendChild(toggle);
+  actions.append(copyBtn, toggle);
 
   bar.append(dots, title);
   if (isPriority) {
@@ -626,6 +851,7 @@ function makeFileWindow(skill, path, isPriority) {
   body.className = 'win-body';
   const status = document.createElement('div');
   status.className = 'loading';
+  // Manifest roots are relative to the skill-reviewer directory.
   const url = skill.root.split('/').map(encodeURIComponent).join('/') + '/' + path.split('/').map(encodeURIComponent).join('/');
   status.textContent = 'Loading ' + skill.root + '/' + path + ' …';
   body.appendChild(status);
@@ -634,38 +860,46 @@ function makeFileWindow(skill, path, isPriority) {
 
   const applyText = (text) => {
     body.textContent = '';
+    const codeView = document.createElement('div');
+    codeView.className = 'code-view';
+    const lineNumbers = document.createElement('pre');
+    lineNumbers.className = 'line-numbers';
+    lineNumbers.setAttribute('aria-hidden', 'true');
+    const lineCount = text.split('\n').length;
+    lineNumbers.textContent = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
     const pre = document.createElement('pre');
+    pre.className = 'code-pre';
     const code = document.createElement('code');
     code.className = 'language-' + lang;
     code.textContent = text;
     pre.appendChild(code);
-    body.appendChild(pre);
+    codeView.append(lineNumbers, pre);
+    body.appendChild(codeView);
     try { if (window.hljs) hljs.highlightElement(code); } catch (_) {}
   };
 
-  if (fileCache.has(url)) {
-    applyText(fileCache.get(url));
-  } else {
-    fetch(url)
-      .then(r => {
-        if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
-        return r.text();
-      })
-      .then(text => {
-        fileCache.set(url, text);
-        applyText(text);
-      })
-      .catch(err => {
-        body.textContent = '';
-        const e = document.createElement('div');
-        e.className = 'error';
-        e.textContent = 'Failed to import: ' + url + '\n' + err;
-        body.appendChild(e);
-        if (String(err).includes('Failed to fetch') || location.protocol === 'file:') {
-          showServeHint(String(err.message || err));
-        }
-      });
-  }
+  const sourcePromise = fetch(url, { cache: 'no-store' })
+    .then(r => {
+      if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+      return r.text();
+    })
+    .then(text => {
+      win.sourceText = text;
+      copyBtn.disabled = false;
+      applyText(text);
+      return text;
+    });
+  win.sourcePromise = sourcePromise;
+  sourcePromise.catch(err => {
+      body.textContent = '';
+      const e = document.createElement('div');
+      e.className = 'error';
+      e.textContent = 'Failed to import: ' + url + '\n' + err;
+      body.appendChild(e);
+      if (String(err).includes('Failed to fetch') || location.protocol === 'file:') {
+        showServeHint(String(err.message || err));
+      }
+  });
 
   return win;
 }
@@ -689,13 +923,25 @@ function renderSkill(i) {
     + (prioN ? ' · ' + prioN + ' priority file(s)' : '');
   const h2 = document.createElement('h2');
   h2.textContent = skill.id;
-  head.append(idx, h2);
+  const copyAllBtn = document.createElement('button');
+  copyAllBtn.type = 'button';
+  copyAllBtn.className = 'skill-copy-all';
+  copyAllBtn.textContent = 'Copy all';
+  copyAllBtn.disabled = true;
+  head.append(idx, h2, copyAllBtn);
 
   const how = document.createElement('div');
   how.className = 'how';
+  const howHead = document.createElement('div');
+  howHead.className = 'how-head';
   const howLabel = document.createElement('div');
   howLabel.className = 'label';
   howLabel.textContent = 'How it works:';
+  const howToggle = document.createElement('button');
+  howToggle.type = 'button';
+  howToggle.className = 'how-toggle';
+  const howContent = document.createElement('div');
+  howContent.className = 'how-content';
   const rootPath = document.createElement('div');
   rootPath.className = 'root-path';
   rootPath.textContent = 'root: ' + skill.root + ' · files: ' + skill.files.length;
@@ -705,7 +951,19 @@ function renderSkill(i) {
     li.textContent = step;
     howList.appendChild(li);
   });
-  how.append(howLabel, rootPath, howList);
+  function setHowCollapsed(collapsed) {
+    how.classList.toggle('collapsed', collapsed);
+    howToggle.textContent = collapsed ? 'Show' : 'Hide';
+    howToggle.setAttribute('aria-expanded', String(!collapsed));
+    localStorage.setItem(HOW_COLLAPSED_KEY, collapsed ? '1' : '0');
+  }
+  howToggle.addEventListener('click', () => {
+    setHowCollapsed(!how.classList.contains('collapsed'));
+  });
+  howHead.append(howLabel, howToggle);
+  howContent.append(rootPath, howList);
+  how.append(howHead, howContent);
+  setHowCollapsed(localStorage.getItem(HOW_COLLAPSED_KEY) === '1');
 
   const ticks = document.createElement('div');
   ticks.className = 'ticks';
@@ -793,6 +1051,12 @@ function renderSkill(i) {
       window.alert('Pick R1 / R2 / R3 / Benign');
       return;
     }
+    const visible = visibleIndices();
+    const visiblePos = visible.indexOf(current);
+    const nextIndex = visiblePos >= 0
+      ? (visiblePos < visible.length - 1 ? visible[visiblePos + 1] : -1)
+      : current + 1;
+    const nextSkillName = SKILLS[nextIndex] ? SKILLS[nextIndex].name : null;
     saveBtn.disabled = true;
     undoBtn.disabled = true;
     saveStatus.className = 'ticks-save-status';
@@ -816,7 +1080,10 @@ function renderSkill(i) {
       updateSidebarMarks(skill.name);
       setSavedState(true, 'saved → manual_review.csv', true);
       if (orderMode === 'unsaved-first' || orderMode === 'saved-first' || orderMode === 'type') {
-        applyOrder(orderMode, skill.name);
+        applyOrder(orderMode, nextSkillName || skill.name);
+      } else if (nextSkillName) {
+        const next = SKILLS.findIndex(item => item.name === nextSkillName);
+        if (next >= 0) goTo(next);
       }
     } catch (err) {
       setSavedState(false, String(err.message || err), false);
@@ -874,9 +1141,25 @@ function renderSkill(i) {
 
   const files = document.createElement('div');
   files.className = 'files';
+  if (skill.files.length <= 2) files.classList.add('single-row');
+  if (skill.files.length === 1) files.classList.add('one-file');
   const priority = new Set(skill.priority_files || []);
+  const fileWindows = [];
   skill.files.forEach(path => {
-    files.appendChild(makeFileWindow(skill, path, priority.has(path)));
+    const win = makeFileWindow(skill, path, priority.has(path));
+    fileWindows.push(win);
+    files.appendChild(win);
+  });
+  Promise.allSettled(fileWindows.map(win => win.sourcePromise)).then(results => {
+    copyAllBtn.disabled = !results.some(result => result.status === 'fulfilled');
+  });
+  copyAllBtn.addEventListener('click', async () => {
+    const results = await Promise.allSettled(fileWindows.map(win => win.sourcePromise));
+    const chunks = results.flatMap((result, index) => {
+      if (result.status !== 'fulfilled') return [];
+      return ['===== ' + fileWindows[index].dataset.path + ' =====\n' + result.value];
+    });
+    if (chunks.length) copyWithFeedback(copyAllBtn, chunks.join('\n\n'));
   });
 
   el.append(head, how, ticks, files);
@@ -991,13 +1274,25 @@ function applyFilter() {
   });
 }
 
+function useManifest(manifest, sourceName, rebuild) {
+  if (!manifest || !Array.isArray(manifest.skills)) {
+    throw new Error('Manifest must contain a skills array');
+  }
+  SKILLS_ROOT = manifest.skills_root || manifest.root || 'skills_R2';
+  SKILLS_MANIFEST = manifest.skills.map(normalizeSkill);
+  if (rebuild) {
+    current = 0;
+    applyOrder(sortMode.value, null);
+    meta.title = 'Manifest: ' + sourceName;
+  }
+}
+
 async function boot() {
   try {
-    const res = await fetch('skill-manifest.json');
+    const res = await fetch('skill-manifest.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
     const manifest = await res.json();
-    SKILLS_ROOT = manifest.skills_root || manifest.root || 'skills_R2';
-    SKILLS_MANIFEST = (manifest.skills || []).map(normalizeSkill);
+    useManifest(manifest, 'skill-manifest.json', false);
   } catch (err) {
     showServeHint(String(err.message || err));
     meta.textContent = 'failed to load manifest';
@@ -1014,6 +1309,19 @@ async function boot() {
 
   sortMode.addEventListener('change', () => {
     applyOrder(sortMode.value);
+  });
+  manifestFile.addEventListener('change', async () => {
+    const file = manifestFile.files && manifestFile.files[0];
+    if (!file) return;
+    try {
+      const manifest = JSON.parse(await file.text());
+      useManifest(manifest, file.name, true);
+      banner.classList.remove('show');
+      banner.textContent = '';
+    } catch (err) {
+      banner.classList.add('show');
+      banner.textContent = 'Could not load ' + file.name + ': ' + String(err.message || err);
+    }
   });
   document.getElementById('shuffle').addEventListener('click', () => {
     sortMode.value = 'shuffle';

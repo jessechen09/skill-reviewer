@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 TOOL_DIR = Path(__file__).resolve().parent
-SERVE_ROOT = TOOL_DIR.parent  # project root (skills_*/, etc.)
+SERVE_ROOT = TOOL_DIR  # skill-reviewer project root
 CSV_PATH = TOOL_DIR / "manual_review.csv"
 MANIFEST_PATH = TOOL_DIR / "skill-manifest.json"
 HEADER = ["Skill", "NL", "C", "Type"]
@@ -112,12 +112,18 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(SERVE_ROOT), **kwargs)
 
+    def end_headers(self) -> None:
+        # This is a local review UI: always serve the latest manifest and files.
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def _json(self, code: int, payload: dict) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
@@ -131,9 +137,12 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        # Old bookmarks before files moved into skill-reviewer/
-        if parsed.path in ("/skill-viewer.html", "/skill-manifest.json"):
-            dest = "/skill-reviewer" + parsed.path
+        # Redirect bookmarks from when the parent directory was served.
+        if parsed.path in (
+            "/skill-reviewer/skill-viewer.html",
+            "/skill-reviewer/skill-manifest.json",
+        ):
+            dest = parsed.path.removeprefix("/skill-reviewer")
             if parsed.query:
                 dest += "?" + parsed.query
             self.send_response(302)
@@ -216,7 +225,7 @@ def main() -> None:
     port = 8765
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print(f"Project root: {SERVE_ROOT}")
-    print(f"Open http://127.0.0.1:{port}/skill-reviewer/skill-viewer.html")
+    print(f"Open http://127.0.0.1:{port}/skill-viewer.html")
     print(f"Reviews → {CSV_PATH}")
     httpd.serve_forever()
 
