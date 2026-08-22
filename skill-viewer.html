@@ -171,6 +171,17 @@
     word-break: break-all;
   }
   .skill-head .idx { color: var(--muted); font-size: 0.74rem; line-height: 1.25; }
+  .skill-head-title { display: flex; align-items: center; gap: 8px; }
+  .copy-name-btn {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background: #333;
+    color: #fff;
+    font: 0.7rem "IBM Plex Mono", ui-monospace, monospace;
+    cursor: pointer;
+  }
   .skill-head-actions {
     position: absolute;
     top: 50%;
@@ -1241,8 +1252,18 @@ function renderSkill(i) {
       + (prioN ? ' · ' + prioN + ' priority file(s)' : '');
   }
   refreshIdx();
+  const titleRow = document.createElement('div');
+  titleRow.className = 'skill-head-title';
   const h2 = document.createElement('h2');
   h2.textContent = skill.id;
+  const copyNameBtn = document.createElement('button');
+  copyNameBtn.type = 'button';
+  copyNameBtn.className = 'copy-name-btn';
+  copyNameBtn.textContent = 'Copy name';
+  copyNameBtn.addEventListener('click', () => {
+    copyWithFeedback(copyNameBtn, skill.id || skill.name || '');
+  });
+  titleRow.append(h2, copyNameBtn);
   const headActions = document.createElement('div');
   headActions.className = 'skill-head-actions';
   const addFileBtn = document.createElement('button');
@@ -1318,7 +1339,7 @@ function renderSkill(i) {
     }
   });
   headActions.append(addFileBtn, copyAllBtn, confirmBtn);
-  head.append(idx, h2, headActions);
+  head.append(idx, titleRow, headActions);
 
   const how = document.createElement('div');
   how.className = 'how';
