@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import csv
 import json
+import shutil
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import parse_qs, urlparse
 
 TOOL_DIR = Path(__file__).resolve().parent
 SERVE_ROOT = TOOL_DIR  # skill-reviewer project root
+PROJECT_ROOT = TOOL_DIR.parent  # skill-analysis-toolchain/, holds skills/
 CSV_PATH = TOOL_DIR / "manual_review.csv"
 MANIFEST_PATH = TOOL_DIR / "skill-manifest.json"
 HEADER = ["Skill", "NL", "C", "Type"]
@@ -106,6 +108,54 @@ def undo_skill(skill: str) -> int:
     if removed:
         write_rows(kept)
     return removed
+
+
+def load_manifest() -> dict:
+    with MANIFEST_PATH.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_manifest(manifest: dict) -> None:
+    MANIFEST_PATH.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def find_skill(manifest: dict, skill_id: str) -> dict | None:
+    for s in manifest.get("skills", []):
+        if (s.get("id") or s.get("name")) == skill_id:
+            return s
+    return None
+
+
+def skill_root_str(manifest: dict, skill: dict) -> str:
+    root = skill.get("root")
+    if root:
+        return root.strip("/")
+    skills_root = str(manifest.get("skills_root") or manifest.get("root") or "").strip("/")
+    skill_id = skill.get("id") or skill.get("name") or ""
+    return f"{skills_root}/{skill_id}"
+
+
+class PathError(Exception):
+    pass
+
+
+def resolve_skill_file(root_str: str, rel_path: str) -> Path:
+    """Resolve rel_path against the skill's root, refusing anything that escapes it."""
+    rel = PurePosixPath(rel_path)
+    if not rel_path or rel.is_absolute() or any(part in ("..", "") for part in rel.parts):
+        raise PathError("invalid path")
+    boundary = (SERVE_ROOT / root_str).resolve()
+    if not boundary.is_dir():
+        raise PathError("skill root not found on disk")
+    target = (boundary / rel).resolve()
+    try:
+        target.relative_to(boundary)
+    except ValueError:
+        raise PathError("path escapes skill root")
+    return target
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -209,6 +259,145 @@ class Handler(SimpleHTTPRequestHandler):
                 self._json(404, {"ok": False, "error": "no row for this skill"})
                 return
             self._json(200, {"ok": True, "skill": skill, "removed": removed, "saved": False})
+            return
+
+        if path == "/api/save-file":
+            skill_id = str(data.get("skill") or "").strip()
+            rel_path = str(data.get("path") or "").strip()
+            content = data.get("content")
+            if not skill_id or not rel_path or content is None:
+                self._json(400, {"ok": False, "error": "skill, path, content required"})
+                return
+            manifest = load_manifest()
+            skill = find_skill(manifest, skill_id)
+            if skill is None:
+                self._json(404, {"ok": False, "error": "unknown skill"})
+                return
+            try:
+                target = resolve_skill_file(skill_root_str(manifest, skill), rel_path)
+            except PathError as e:
+                self._json(400, {"ok": False, "error": str(e)})
+                return
+            if not target.exists():
+                self._json(404, {"ok": False, "error": "file does not exist; use /api/create-file"})
+                return
+            try:
+                target.write_text(content, encoding="utf-8")
+            except OSError as e:
+                self._json(500, {"ok": False, "error": str(e)})
+                return
+            self._json(200, {"ok": True, "skill": skill_id, "path": rel_path})
+            return
+
+        if path == "/api/create-file":
+            skill_id = str(data.get("skill") or "").strip()
+            rel_path = str(data.get("path") or "").strip()
+            content = data.get("content") or ""
+            if not skill_id or not rel_path:
+                self._json(400, {"ok": False, "error": "skill and path required"})
+                return
+            manifest = load_manifest()
+            skill = find_skill(manifest, skill_id)
+            if skill is None:
+                self._json(404, {"ok": False, "error": "unknown skill"})
+                return
+            try:
+                target = resolve_skill_file(skill_root_str(manifest, skill), rel_path)
+            except PathError as e:
+                self._json(400, {"ok": False, "error": str(e)})
+                return
+            if target.exists():
+                self._json(409, {"ok": False, "error": "file already exists"})
+                return
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(content, encoding="utf-8")
+            except OSError as e:
+                self._json(500, {"ok": False, "error": str(e)})
+                return
+            files = skill.setdefault("files", [])
+            if rel_path not in files:
+                files.append(rel_path)
+            save_manifest(manifest)
+            self._json(200, {"ok": True, "skill": skill_id, "path": rel_path, "files": files})
+            return
+
+        if path == "/api/delete-file":
+            skill_id = str(data.get("skill") or "").strip()
+            rel_path = str(data.get("path") or "").strip()
+            if not skill_id or not rel_path:
+                self._json(400, {"ok": False, "error": "skill and path required"})
+                return
+            manifest = load_manifest()
+            skill = find_skill(manifest, skill_id)
+            if skill is None:
+                self._json(404, {"ok": False, "error": "unknown skill"})
+                return
+            try:
+                target = resolve_skill_file(skill_root_str(manifest, skill), rel_path)
+            except PathError as e:
+                self._json(400, {"ok": False, "error": str(e)})
+                return
+            if not target.exists():
+                self._json(404, {"ok": False, "error": "file does not exist"})
+                return
+            try:
+                target.unlink()
+            except OSError as e:
+                self._json(500, {"ok": False, "error": str(e)})
+                return
+            files = skill.get("files", [])
+            if rel_path in files:
+                files.remove(rel_path)
+            prio = skill.get("priority_files", [])
+            if rel_path in prio:
+                prio.remove(rel_path)
+            save_manifest(manifest)
+            self._json(200, {"ok": True, "skill": skill_id, "path": rel_path, "files": files})
+            return
+
+        if path == "/api/confirm-skill":
+            skill_id = str(data.get("skill") or "").strip()
+            if not skill_id:
+                self._json(400, {"ok": False, "error": "skill required"})
+                return
+            manifest = load_manifest()
+            skill = find_skill(manifest, skill_id)
+            if skill is None:
+                self._json(404, {"ok": False, "error": "unknown skill"})
+                return
+            category = str(skill.get("category") or "").strip()
+            if not category:
+                root_str = skill_root_str(manifest, skill)
+                parts = PurePosixPath(root_str).parts
+                if len(parts) < 2:
+                    self._json(400, {"ok": False, "error": "cannot determine category from root " + root_str})
+                    return
+                category = parts[-2].removeprefix("skills_")
+            root_str = skill_root_str(manifest, skill)
+            source_dir = (SERVE_ROOT / root_str).resolve()
+            if not source_dir.is_dir():
+                self._json(404, {"ok": False, "error": "skill directory not found on disk"})
+                return
+            asgardbench_dir = PROJECT_ROOT / "asgardbench"
+            if not asgardbench_dir.is_dir():
+                self._json(404, {"ok": False, "error": "asgardbench/ not found next to skill-reviewer/"})
+                return
+            dest_dir = asgardbench_dir / "skills" / category / skill_id
+            try:
+                if dest_dir.exists():
+                    shutil.rmtree(dest_dir)
+                dest_dir.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(source_dir, dest_dir)
+            except OSError as e:
+                self._json(500, {"ok": False, "error": str(e)})
+                return
+            self._json(200, {
+                "ok": True,
+                "skill": skill_id,
+                "category": category,
+                "dest": str(dest_dir.relative_to(PROJECT_ROOT)),
+            })
             return
 
         self.send_error(404, "Not found")

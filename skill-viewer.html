@@ -159,7 +159,7 @@
   }
   .skill-head {
     position: relative;
-    padding: 6px 112px 5px 12px;
+    padding: 6px 280px 5px 12px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--line);
   }
@@ -171,11 +171,15 @@
     word-break: break-all;
   }
   .skill-head .idx { color: var(--muted); font-size: 0.74rem; line-height: 1.25; }
-  .skill-copy-all {
+  .skill-head-actions {
     position: absolute;
     top: 50%;
     right: 12px;
     transform: translateY(-50%);
+    display: flex;
+    gap: 6px;
+  }
+  .skill-head-actions button {
     padding: 4px 9px;
     border: 1px solid #555;
     border-radius: 5px;
@@ -184,7 +188,8 @@
     font: 0.76rem "IBM Plex Mono", ui-monospace, monospace;
     cursor: pointer;
   }
-  .skill-copy-all:disabled { opacity: 0.45; cursor: wait; }
+  .skill-head-actions button:disabled { opacity: 0.45; cursor: wait; }
+  .skill-head-actions .confirm-btn { background: #1a7f37; border-color: #1a7f37; }
   .ticks {
     display: flex;
     flex-wrap: wrap;
@@ -436,22 +441,34 @@
   }
   .win-actions { display: flex; gap: 5px; }
   .win-actions button:disabled { opacity: 0.45; cursor: wait; }
-  .win-body { flex: 1; min-height: 0; overflow: auto; background: var(--code-bg); }
+  .win-actions .win-delete { border-color: #7a2020; background: #4a1414; }
+  .win-status {
+    font-size: 0.65rem;
+    letter-spacing: 0.02em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #444;
+    flex-shrink: 0;
+    min-width: 46px;
+    text-align: center;
+  }
+  .win-status.busy { background: #b07d00; }
+  .win-status.ok { background: #1a7f37; }
+  .win-status.err { background: #cf222e; }
+  .win-body { flex: 1; min-height: 0; overflow: hidden; background: var(--code-bg); display: flex; }
   .code-view {
     display: flex;
     align-items: stretch;
-    width: max-content;
-    min-width: 100%;
-    min-height: 100%;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
   .win-body .line-numbers {
-    position: sticky;
-    left: 0;
-    z-index: 1;
     flex: 0 0 auto;
     min-width: calc(2ch + 5px);
     margin: 0;
     padding: 12px 3px;
+    overflow: hidden;
     border-right: 1px solid #30363d;
     background: #161b22;
     color: #6e7681;
@@ -461,21 +478,91 @@
     line-height: 1.45;
     user-select: none;
   }
-  .win-body .code-pre {
-    flex: 1 0 auto;
+  .editor-stack {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+  }
+  .editor-stack .code-highlight,
+  .editor-stack .code-edit {
+    position: absolute;
+    inset: 0;
     margin: 0;
     padding: 12px 14px;
-    background: var(--code-bg) !important;
-    min-height: 100%;
-  }
-  .win-body code {
-    font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace !important;
-    font-size: 12.5px !important;
-    line-height: 1.45 !important;
+    border: 0;
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.45;
     tab-size: 2;
     white-space: pre;
+    overflow: auto;
+  }
+  .editor-stack .code-highlight {
+    pointer-events: none;
+    background: var(--code-bg) !important;
+    color: #e6edf3;
+  }
+  .editor-stack .code-highlight code {
+    font: inherit !important;
+    white-space: pre !important;
     background: transparent !important;
   }
+  .editor-stack .code-edit {
+    resize: none;
+    outline: none;
+    background: transparent;
+    color: transparent;
+    caret-color: #e6edf3;
+  }
+  .editor-stack .code-edit::selection { background: rgba(56, 139, 253, 0.4); color: transparent; }
+  .md-preview {
+    flex: 1 1 auto;
+    height: 100%;
+    min-width: 0;
+    overflow: auto;
+    padding: 14px 18px;
+    background: var(--code-bg);
+    color: #c9d1d9;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .md-preview h1, .md-preview h2, .md-preview h3, .md-preview h4 {
+    color: #e6edf3;
+    margin: 1em 0 0.4em;
+    line-height: 1.3;
+  }
+  .md-preview h1 { font-size: 1.5em; border-bottom: 1px solid #30363d; padding-bottom: 0.25em; }
+  .md-preview h2 { font-size: 1.25em; border-bottom: 1px solid #30363d; padding-bottom: 0.2em; }
+  .md-preview p { margin: 0.6em 0; }
+  .md-preview a { color: #58a6ff; }
+  .md-preview code {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    background: #161b22;
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+  }
+  .md-preview pre {
+    background: #161b22;
+    padding: 10px 12px;
+    border-radius: 6px;
+    overflow: auto;
+  }
+  .md-preview pre code { background: transparent; padding: 0; }
+  .md-preview ul, .md-preview ol { padding-left: 1.4em; margin: 0.5em 0; }
+  .md-preview li { margin: 0.2em 0; }
+  .md-preview blockquote {
+    margin: 0.6em 0;
+    padding: 0.2em 0.9em;
+    border-left: 3px solid #3a7a3a;
+    color: #9aa4b2;
+  }
+  .md-preview table { border-collapse: collapse; margin: 0.6em 0; }
+  .md-preview th, .md-preview td { border: 1px solid #30363d; padding: 4px 8px; }
+  .md-preview img { max-width: 100%; }
+  .md-preview hr { border: 0; border-top: 1px solid #30363d; margin: 1em 0; }
   .win-body .loading, .win-body .error {
     padding: 16px;
     color: #9aa4b2;
@@ -544,23 +631,25 @@
     <div class="main" id="root"></div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/javascript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/typescript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/bash.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/json.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/yaml.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/markdown.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/xml.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/css.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/ini.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/rust.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/go.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/ruby.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/sql.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/dockerfile.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/makefile.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/ini.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/rust.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/ruby.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/dockerfile.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/makefile.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/18.0.10/lib/marked.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.14/purify.min.js"></script>
 <script>
 const LANG_MAP = {
   md: 'markdown', py: 'python', js: 'javascript', ts: 'typescript', tsx: 'typescript',
@@ -595,6 +684,7 @@ let SKILLS_ROOT = 'skills_R2';
 let current = 0;
 let orderMode = 'name-asc';
 let SAVED_REVIEWS = {}; // skill -> {nl, c, type} from CSV
+let activeFileWindows = []; // file-edit windows currently mounted, for flushing pending saves
 const SHUFFLE_SEED = 9;
 const HOW_COLLAPSED_KEY = 'skill_viewer_how_collapsed_v1';
 const SIDEBAR_WIDTH_KEY = 'skill_viewer_sidebar_width_v1';
@@ -796,6 +886,12 @@ function setActive(i) {
   if (btn) btn.scrollIntoView({ block: 'nearest' });
 }
 
+function flushPendingEdits() {
+  return Promise.all(activeFileWindows.map(win => (
+    typeof win.flushSave === 'function' ? win.flushSave() : Promise.resolve()
+  )));
+}
+
 function makeFileWindow(skill, path, isPriority) {
   const lang = langFor(path);
   const win = document.createElement('div');
@@ -818,6 +914,13 @@ function makeFileWindow(skill, path, isPriority) {
   langEl.className = 'win-lang lang-' + lang;
   langEl.textContent = lang;
 
+  const statusEl = document.createElement('div');
+  statusEl.className = 'win-status';
+  function setStatus(text, ok) {
+    statusEl.textContent = text || '';
+    statusEl.className = 'win-status' + (ok === true ? ' ok' : ok === false ? ' err' : text ? ' busy' : '');
+  }
+
   const actions = document.createElement('div');
   actions.className = 'win-actions';
   const copyBtn = document.createElement('button');
@@ -825,10 +928,28 @@ function makeFileWindow(skill, path, isPriority) {
   copyBtn.textContent = 'Copy';
   copyBtn.disabled = true;
   copyBtn.addEventListener('click', () => {
-    if (typeof win.sourceText === 'string') {
-      copyWithFeedback(copyBtn, win.sourceText);
-    }
+    copyWithFeedback(copyBtn, editor.value);
   });
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.textContent = 'Save';
+  saveBtn.disabled = true;
+  saveBtn.addEventListener('click', () => { flushSave(); });
+  const isMarkdown = lang === 'markdown';
+  let previewMode = isMarkdown;
+  const previewToggle = document.createElement('button');
+  previewToggle.type = 'button';
+  function refreshPreviewToggleLabel() {
+    previewToggle.textContent = previewMode ? 'Show source' : 'Show preview';
+  }
+  if (isMarkdown) {
+    refreshPreviewToggleLabel();
+    previewToggle.addEventListener('click', () => {
+      previewMode = !previewMode;
+      refreshPreviewToggleLabel();
+      showActiveView();
+    });
+  }
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.textContent = 'Collapse';
@@ -836,7 +957,39 @@ function makeFileWindow(skill, path, isPriority) {
     win.classList.toggle('collapsed');
     toggle.textContent = win.classList.contains('collapsed') ? 'Expand' : 'Collapse';
   });
-  actions.append(copyBtn, toggle);
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'win-delete';
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.addEventListener('click', async () => {
+    if (!window.confirm('Delete ' + path + ' from disk? This cannot be undone.')) return;
+    deleteBtn.disabled = true;
+    try {
+      const res = await fetch('/api/delete-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill: skill.name, path }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || (res.status + ' ' + res.statusText));
+      skill.files = skill.files.filter(p => p !== path);
+      skill.priority_files = (skill.priority_files || []).filter(p => p !== path);
+      const container = win.parentElement;
+      const pos = activeFileWindows.indexOf(win);
+      if (pos >= 0) activeFileWindows.splice(pos, 1);
+      win.remove();
+      if (container) {
+        container.classList.toggle('single-row', skill.files.length <= 2);
+        container.classList.toggle('one-file', skill.files.length === 1);
+      }
+    } catch (err) {
+      deleteBtn.disabled = false;
+      window.alert('Delete failed: ' + (err.message || err));
+    }
+  });
+  actions.append(copyBtn, saveBtn);
+  if (isMarkdown) actions.append(previewToggle);
+  actions.append(toggle, deleteBtn);
 
   bar.append(dots, title);
   if (isPriority) {
@@ -845,7 +998,7 @@ function makeFileWindow(skill, path, isPriority) {
     badge.textContent = 'priority';
     bar.appendChild(badge);
   }
-  bar.append(langEl, actions);
+  bar.append(langEl, statusEl, actions);
 
   const body = document.createElement('div');
   body.className = 'win-body';
@@ -858,25 +1011,123 @@ function makeFileWindow(skill, path, isPriority) {
 
   win.append(bar, body);
 
-  const applyText = (text) => {
-    body.textContent = '';
-    const codeView = document.createElement('div');
-    codeView.className = 'code-view';
-    const lineNumbers = document.createElement('pre');
-    lineNumbers.className = 'line-numbers';
-    lineNumbers.setAttribute('aria-hidden', 'true');
-    const lineCount = text.split('\n').length;
+  const lineNumbers = document.createElement('pre');
+  lineNumbers.className = 'line-numbers';
+  lineNumbers.setAttribute('aria-hidden', 'true');
+
+  const editorStack = document.createElement('div');
+  editorStack.className = 'editor-stack';
+  const highlightPre = document.createElement('pre');
+  highlightPre.className = 'code-highlight';
+  highlightPre.setAttribute('aria-hidden', 'true');
+  const highlightCode = document.createElement('code');
+  highlightCode.className = 'language-' + lang;
+  highlightPre.appendChild(highlightCode);
+  const editor = document.createElement('textarea');
+  editor.className = 'code-edit';
+  editor.spellcheck = false;
+  editor.wrap = 'off';
+  editor.disabled = true;
+  editorStack.append(highlightPre, editor);
+
+  function canHighlight() {
+    return !!(window.hljs && hljs.getLanguage(lang));
+  }
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function updateHighlight() {
+    const text = editor.value;
+    let html;
+    try {
+      html = canHighlight() ? hljs.highlight(text, { language: lang, ignoreIllegals: true }).value : escapeHtml(text);
+    } catch (_) {
+      html = escapeHtml(text);
+    }
+    highlightCode.innerHTML = html;
+  }
+  function updateLineNumbers() {
+    const lineCount = editor.value.split('\n').length;
     lineNumbers.textContent = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
-    const pre = document.createElement('pre');
-    pre.className = 'code-pre';
-    const code = document.createElement('code');
-    code.className = 'language-' + lang;
-    code.textContent = text;
-    pre.appendChild(code);
-    codeView.append(lineNumbers, pre);
-    body.appendChild(codeView);
-    try { if (window.hljs) hljs.highlightElement(code); } catch (_) {}
-  };
+  }
+  editor.addEventListener('scroll', () => {
+    lineNumbers.scrollTop = editor.scrollTop;
+    highlightPre.scrollTop = editor.scrollTop;
+    highlightPre.scrollLeft = editor.scrollLeft;
+  });
+
+  let savedText = null;
+  let saveTimer = null;
+
+  async function flushSave() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    if (editor.disabled || savedText === null || editor.value === savedText) return;
+    const text = editor.value;
+    setStatus('saving…', null);
+    try {
+      const res = await fetch('/api/save-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill: skill.name, path, content: text }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || (res.status + ' ' + res.statusText));
+      savedText = text;
+      setStatus('saved', true);
+    } catch (err) {
+      setStatus('save failed', false);
+    }
+  }
+  win.flushSave = flushSave;
+
+  editor.addEventListener('input', () => {
+    updateLineNumbers();
+    updateHighlight();
+    setStatus('editing…', null);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, 800);
+  });
+  editor.addEventListener('blur', flushSave);
+
+  const codeView = document.createElement('div');
+  codeView.className = 'code-view';
+  codeView.append(lineNumbers, editorStack);
+
+  const previewEl = document.createElement('div');
+  previewEl.className = 'md-preview';
+
+  function renderPreview() {
+    const text = editor.value;
+    let html;
+    try {
+      if (window.marked && window.DOMPurify) {
+        const rawHtml = typeof marked.parse === 'function' ? marked.parse(text) : marked(text);
+        html = DOMPurify.sanitize(rawHtml, {
+          FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+        });
+      } else {
+        html = '<pre>' + escapeHtml(text) + '</pre>';
+      }
+    } catch (_) {
+      html = '<pre>' + escapeHtml(text) + '</pre>';
+    }
+    previewEl.innerHTML = html;
+    previewEl.querySelectorAll('a[href]').forEach(a => {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    });
+  }
+
+  function showActiveView() {
+    body.textContent = '';
+    if (isMarkdown && previewMode) {
+      renderPreview();
+      body.appendChild(previewEl);
+    } else {
+      body.appendChild(codeView);
+    }
+  }
 
   const sourcePromise = fetch(url, { cache: 'no-store' })
     .then(r => {
@@ -885,11 +1136,18 @@ function makeFileWindow(skill, path, isPriority) {
     })
     .then(text => {
       win.sourceText = text;
+      savedText = text;
+      editor.value = text;
+      editor.disabled = false;
+      updateLineNumbers();
+      updateHighlight();
       copyBtn.disabled = false;
-      applyText(text);
+      saveBtn.disabled = false;
+      showActiveView();
       return text;
     });
   win.sourcePromise = sourcePromise;
+  win.getText = () => editor.value;
   sourcePromise.catch(err => {
       body.textContent = '';
       const e = document.createElement('div');
@@ -906,11 +1164,13 @@ function makeFileWindow(skill, path, isPriority) {
 
 function renderSkill(i) {
   if (!SKILLS.length) return;
+  flushPendingEdits();
   current = Math.max(0, Math.min(i, SKILLS.length - 1));
   const skill = SKILLS[current];
   setActive(current);
 
   root.textContent = '';
+  activeFileWindows = [];
   const el = document.createElement('section');
   el.className = 'skill';
 
@@ -918,17 +1178,90 @@ function renderSkill(i) {
   head.className = 'skill-head';
   const idx = document.createElement('div');
   idx.className = 'idx';
-  const prioN = (skill.priority_files || []).length;
-  idx.textContent = '#' + (current + 1) + ' / ' + SKILLS.length + ' · ' + skill.root
-    + (prioN ? ' · ' + prioN + ' priority file(s)' : '');
+  function refreshIdx() {
+    const prioN = (skill.priority_files || []).length;
+    idx.textContent = '#' + (current + 1) + ' / ' + SKILLS.length + ' · ' + skill.root
+      + (prioN ? ' · ' + prioN + ' priority file(s)' : '');
+  }
+  refreshIdx();
   const h2 = document.createElement('h2');
   h2.textContent = skill.id;
+  const headActions = document.createElement('div');
+  headActions.className = 'skill-head-actions';
+  const addFileBtn = document.createElement('button');
+  addFileBtn.type = 'button';
+  addFileBtn.textContent = '+ File';
+  addFileBtn.addEventListener('click', async () => {
+    const raw = window.prompt('New file path (relative to skill root), e.g. scripts/helper.py:');
+    if (raw == null) return;
+    const path = raw.trim().replace(/^\/+/, '');
+    if (!path) return;
+    if (skill.files.includes(path)) {
+      window.alert('That file is already listed for this skill.');
+      return;
+    }
+    addFileBtn.disabled = true;
+    try {
+      const res = await fetch('/api/create-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill: skill.name, path }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || (res.status + ' ' + res.statusText));
+      skill.files.push(path);
+      const win = makeFileWindow(skill, path, false);
+      fileWindows.push(win);
+      activeFileWindows.push(win);
+      files.appendChild(win);
+      files.classList.toggle('single-row', skill.files.length <= 2);
+      files.classList.toggle('one-file', skill.files.length === 1);
+      copyAllBtn.disabled = false;
+      refreshIdx();
+      refreshRootPath();
+    } catch (err) {
+      window.alert('Create failed: ' + (err.message || err));
+    } finally {
+      addFileBtn.disabled = false;
+    }
+  });
   const copyAllBtn = document.createElement('button');
   copyAllBtn.type = 'button';
-  copyAllBtn.className = 'skill-copy-all';
   copyAllBtn.textContent = 'Copy all';
   copyAllBtn.disabled = true;
-  head.append(idx, h2, copyAllBtn);
+  const confirmBtn = document.createElement('button');
+  confirmBtn.type = 'button';
+  confirmBtn.className = 'confirm-btn';
+  confirmBtn.textContent = 'Push';
+  confirmBtn.addEventListener('click', async () => {
+    if (!window.confirm(
+      'Copy ' + skill.id + ' into asgardbench/skills/<category>/' + skill.id + '?\n'
+      + 'This overwrites any copy already confirmed there.'
+    )) return;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Confirming…';
+    try {
+      await flushPendingEdits();
+      const res = await fetch('/api/confirm-skill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill: skill.name }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || (res.status + ' ' + res.statusText));
+      confirmBtn.textContent = 'Confirmed ✓';
+      window.setTimeout(() => {
+        confirmBtn.textContent = 'Confirm';
+        confirmBtn.disabled = false;
+      }, 1500);
+    } catch (err) {
+      confirmBtn.textContent = 'Confirm';
+      confirmBtn.disabled = false;
+      window.alert('Confirm failed: ' + (err.message || err));
+    }
+  });
+  headActions.append(addFileBtn, copyAllBtn, confirmBtn);
+  head.append(idx, h2, headActions);
 
   const how = document.createElement('div');
   how.className = 'how';
@@ -944,7 +1277,10 @@ function renderSkill(i) {
   howContent.className = 'how-content';
   const rootPath = document.createElement('div');
   rootPath.className = 'root-path';
-  rootPath.textContent = 'root: ' + skill.root + ' · files: ' + skill.files.length;
+  function refreshRootPath() {
+    rootPath.textContent = 'root: ' + skill.root + ' · files: ' + skill.files.length;
+  }
+  refreshRootPath();
   const howList = document.createElement('ol');
   skill.how_it_works.forEach(step => {
     const li = document.createElement('li');
@@ -1148,6 +1484,7 @@ function renderSkill(i) {
   skill.files.forEach(path => {
     const win = makeFileWindow(skill, path, priority.has(path));
     fileWindows.push(win);
+    activeFileWindows.push(win);
     files.appendChild(win);
   });
   Promise.allSettled(fileWindows.map(win => win.sourcePromise)).then(results => {
@@ -1157,7 +1494,9 @@ function renderSkill(i) {
     const results = await Promise.allSettled(fileWindows.map(win => win.sourcePromise));
     const chunks = results.flatMap((result, index) => {
       if (result.status !== 'fulfilled') return [];
-      return ['===== ' + fileWindows[index].dataset.path + ' =====\n' + result.value];
+      const win = fileWindows[index];
+      const text = typeof win.getText === 'function' ? win.getText() : result.value;
+      return ['===== ' + win.dataset.path + ' =====\n' + text];
     });
     if (chunks.length) copyWithFeedback(copyAllBtn, chunks.join('\n\n'));
   });
@@ -1329,6 +1668,7 @@ async function boot() {
   });
 
   filter.addEventListener('input', applyFilter);
+  window.addEventListener('beforeunload', flushPendingEdits);
 
   document.getElementById('prev').addEventListener('click', () => {
     const vis = visibleIndices();
